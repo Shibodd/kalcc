@@ -6,7 +6,6 @@
 %define parse.assert
 
 %code requires {
-  class driver;
   #include "ast.hh"
 }
 
@@ -19,7 +18,7 @@
 %define parse.lac full
 
 %code {
-  #include "driver.hh" 
+  #include "driver.hh"
 }
 
 %define api.token.raw

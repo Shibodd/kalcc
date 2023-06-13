@@ -2,7 +2,6 @@
 #define DRIVER_HH
 
 #include "parser.hh"
-#include "ast.hh"
 #include <map>
 
 #include <memory>
@@ -17,10 +16,11 @@ YY_DECL;
 class driver
 {
 public:
-  driver ();
+  driver();
 
   std::unique_ptr<llvm::LLVMContext> llvmContext;
   std::unique_ptr<llvm::Module> llvmModule;
+  std::unique_ptr<llvm::IRBuilder<>> llvmIRBuilder;
   std::map<std::string, llvm::Value*> namedValues;
 
   std::unique_ptr<RootAST> root;
@@ -33,6 +33,8 @@ public:
   
   // Whether to generate parser debug traces.
   bool trace_parsing;
+
+  bool trace_codegen;
   
   // Handling the scanner.
   void scan_begin ();

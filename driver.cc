@@ -2,11 +2,13 @@
 #include "parser.hh"
 
 driver::driver ()
-  : trace_parsing (false), 
-    trace_scanning (false)
+  : trace_parsing(false), 
+    trace_scanning(false),
+    trace_codegen(false)
 { 
   llvmContext = std::make_unique<llvm::LLVMContext>();
   llvmModule = std::make_unique<llvm::Module>("Kaleidoscope", *llvmContext);
+  llvmIRBuilder = std::make_unique<llvm::IRBuilder<>>(*llvmContext);
 }
 
 int driver::parse (const std::string &f)
@@ -16,10 +18,10 @@ int driver::parse (const std::string &f)
   
   scan_begin();
 
-  yy::parser parse(*this);
-  parse.set_debug_level (trace_parsing);
+  yy::parser parser(*this);
+  parser.set_debug_level (trace_parsing);
 
-  int res = parse();
+  int res = parser.parse();
   scan_end();
   return res;
 }
