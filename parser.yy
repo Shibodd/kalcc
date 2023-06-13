@@ -40,7 +40,7 @@
 
 %token <std::string> IDENTIFIER "id"
 %token <double> NUMBER "number"
-%nterm <std::unique_ptr<RootAST>> program
+%nterm <std::unique_ptr<SequenceAST>> program
 %nterm <std::unique_ptr<RootAST>> top
 %nterm <std::unique_ptr<FunctionAST>> fun_def
 %nterm <std::unique_ptr<FunctionPrototypeAST>> fun_proto

@@ -80,9 +80,9 @@ public:
 
 class SequenceAST : public RootAST {
   std::unique_ptr<RootAST> current;
-  std::unique_ptr<RootAST> next;
+  std::unique_ptr<SequenceAST> next;
 public:
-  SequenceAST(std::unique_ptr<RootAST> current, std::unique_ptr<RootAST> next);
+  SequenceAST(std::unique_ptr<RootAST> current, std::unique_ptr<SequenceAST> next);
   
   llvm::Value* codegen(driver& drv, int depth) override;
 };

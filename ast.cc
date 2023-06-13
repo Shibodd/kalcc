@@ -22,7 +22,7 @@ CallExprAST::CallExprAST(const std::string &callee, std::vector<std::unique_ptr<
   : callee(callee),
     args(std::move(args)) {}
 
-SequenceAST::SequenceAST(std::unique_ptr<RootAST> current, std::unique_ptr<RootAST> next)
+SequenceAST::SequenceAST(std::unique_ptr<RootAST> current, std::unique_ptr<SequenceAST> next)
   : current(std::move(current)),
     next(std::move(next)) {}
 
@@ -159,8 +159,22 @@ llvm::Value* FunctionAST::codegen(driver& drv, int depth) {
 llvm::Value* SequenceAST::codegen(driver& drv, int depth) {
   dbglog(drv, "Sequence", "", depth);
 
-  if (this->current)
+  if (this->current) {
+    if (ExprAST* expr = dynamic_cast<ExprAST*>(this->current.get())) {
+      // We have a top level expression - replace it with an anonymous function
+
+      // We need to get a new unique_ptr to ExprAST...
+      this->current.release();
+      std::unique_ptr<ExprAST> expr_ptr = std::unique_ptr<ExprAST>(expr);
+      
+      // Create the anon function and replace the current node with it
+      const std::string anon_fun_name = "__anon_expr" + std::to_string(drv.get_unique_id());
+      auto anon_fun_proto = std::make_unique<FunctionPrototypeAST>(anon_fun_name, std::vector<std::string>());
+      this->current = std::make_unique<FunctionAST>(std::move(anon_fun_proto), std::move(expr_ptr));
+    }
+
     this->current->codegen(drv, depth + 1);
+  }
 
   if (this->next)
     this->next->codegen(drv, depth + 1);
