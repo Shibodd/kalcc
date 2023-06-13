@@ -72,13 +72,14 @@ yy::parser::symbol_type parseNumber(const std::string &s, const yy::parser::loca
 }
 
 yy::parser::symbol_type parseKeyword(const std::string &s, const yy::location& loc)  {
-  if (s == "def") {
-    return yy::parser::make_DEF(loc);
-  } else if (s == "extern") {
-    return yy::parser::make_EXTERN(loc);
-  } else {
+       if (s == "def")    return yy::parser::make_DEF(loc);
+  else if (s == "extern") return yy::parser::make_EXTERN(loc);
+  else if (s == "if")     return yy::parser::make_IF(loc);
+  else if (s == "then")     return yy::parser::make_THEN(loc);
+  else if (s == "else")   return yy::parser::make_ELSE(loc);
+  else if (s == "end")    return yy::parser::make_END(loc);
+  else
     return yy::parser::make_IDENTIFIER (yytext, loc);
-  }
 }
 
 void driver::scan_begin()

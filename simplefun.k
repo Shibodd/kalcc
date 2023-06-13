@@ -1,4 +1,4 @@
-extern f(k);
-def g(x) 2*f(2)*f(5)*f(3 + x);
-g(5 * 2 + g(2));
-g(2);
+extern foo();
+extern bar();
+
+def g(x) if x then foo() else bar() end;

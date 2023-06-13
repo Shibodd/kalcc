@@ -68,9 +68,23 @@ class CallExprAST : public ExprAST {
   std::vector<std::unique_ptr<ExprAST>> args;
 
 public:
-  CallExprAST(const std::string &callee,
-              std::vector<std::unique_ptr<ExprAST>> args);
+  CallExprAST(
+      const std::string &callee,
+      std::vector<std::unique_ptr<ExprAST>> args);
     
+  llvm::Value* codegen(driver& drv, int depth) override;
+};
+
+
+class IfExprAST : public ExprAST {
+  std::unique_ptr<ExprAST> cond_expr, true_expr, false_expr;
+
+public:
+  IfExprAST(
+      std::unique_ptr<ExprAST> cond_expr,
+      std::unique_ptr<ExprAST> true_expr,
+      std::unique_ptr<ExprAST> false_expr);
+  
   llvm::Value* codegen(driver& drv, int depth) override;
 };
 

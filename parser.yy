@@ -36,6 +36,10 @@
  RPAREN ")"
  EXTERN "extern"
  DEF "def"
+ IF "if"
+ THEN "then"
+ ELSE "else"
+ END "end"
 ;
 
 %token <std::string> IDENTIFIER "id"
@@ -50,6 +54,7 @@
 %nterm <std::unique_ptr<ExprAST>> identifier_expr
 %nterm <std::vector<std::unique_ptr<ExprAST>>> opt_expr_list
 %nterm <std::vector<std::unique_ptr<ExprAST>>> expr_list
+%nterm <std::unique_ptr<IfExprAST>> ifexpr
 
 %%
 
@@ -91,6 +96,10 @@ expr:
   | expr "/" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Div, std::move($1), std::move($3)); }
   | identifier_expr { $$ = std::move($1); }
   | "(" expr ")" { $$ = std::move($2); }
+  | ifexpr { $$ = std::move($1); }
+
+ifexpr:
+  "if" expr "then" expr "else" expr "end" { $$ = std::make_unique<IfExprAST>(std::move($2), std::move($4), std::move($6)); }
 
 identifier_expr:
   "id" { $$ = std::make_unique<VariableExprAST>(std::move($1)); }
