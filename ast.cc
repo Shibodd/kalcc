@@ -38,16 +38,16 @@ FunctionAST::FunctionAST(std::unique_ptr<FunctionPrototypeAST> prototype, std::u
 
 /* CODE GENERATION */
 
-static inline void dbglog(const driver& drv, const std::string& str, int depth) {
+static inline void dbglog(const driver& drv, const std::string& construct, const std::string& str, int depth) {
   if (drv.trace_codegen)
-    llvm::errs() << std::string(depth, ' ') << str << "\n";
+    llvm::errs() << std::string(depth, '\'') << "[" << construct << "] " << str << "\n";
 }
 
 
 #include <llvm/IR/Verifier.h>
 
 llvm::Value* VariableExprAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "Variable " + this->name, depth);
+  dbglog(drv, "Variable", this->name, depth);
 
   llvm::Value* val = drv.namedValues[this->name];
 
@@ -58,13 +58,20 @@ llvm::Value* VariableExprAST::codegen(driver& drv, int depth) {
 }
 
 llvm::Value* NumberExprAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "Number " + std::to_string(this->value), depth);
+  dbglog(drv, "Number", std::to_string(this->value), depth);
 
   return llvm::ConstantFP::get(*drv.llvmContext, llvm::APFloat(this->value));
 }
 
 llvm::Value* BinaryExprAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "Binexp " + std::to_string((int)this->op), depth);
+  static const std::map<BinaryOperator, std::string> BINOP_NAMES = {
+    { BinaryOperator::Add, "Add" },
+    { BinaryOperator::Sub, "Sub" },
+    { BinaryOperator::Mul, "Mul" },
+    { BinaryOperator::Div, "Div" }
+  };
+
+  dbglog(drv, "Binary expression", BINOP_NAMES.at(this->op), depth);
 
   llvm::Value* lhs = this->lhs->codegen(drv, depth + 1);
   llvm::Value* rhs = this->rhs->codegen(drv, depth + 1);
@@ -86,7 +93,7 @@ llvm::Value* BinaryExprAST::codegen(driver& drv, int depth) {
 }
 
 llvm::Value* CallExprAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "Fun call " + this->callee, depth);
+  dbglog(drv, "Function call", this->callee, depth);
 
   llvm::Function* fun = drv.llvmModule->getFunction(this->callee);
   if (!fun)
@@ -106,7 +113,7 @@ llvm::Value* CallExprAST::codegen(driver& drv, int depth) {
 }
 
 llvm::Function* FunctionPrototypeAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "Fun proto " + this->getName(), depth);
+  dbglog(drv, "Function prototype", this->getName(), depth);
 
   std::vector<llvm::Type *> types(this->argsNames.size(), llvm::Type::getDoubleTy(*drv.llvmContext));
 
@@ -122,7 +129,7 @@ llvm::Function* FunctionPrototypeAST::codegen(driver& drv, int depth) {
 }
   
 llvm::Value* FunctionAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "Fun " + this->prototype->getName(), depth);
+  dbglog(drv, "Function", this->prototype->getName(), depth);
 
   llvm::Function *F = drv.llvmModule->getFunction(this->prototype->getName());
   if (!F)
@@ -150,7 +157,7 @@ llvm::Value* FunctionAST::codegen(driver& drv, int depth) {
 }
 
 llvm::Value* SequenceAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "Seq", depth);
+  dbglog(drv, "Sequence", "", depth);
 
   if (this->current)
     this->current->codegen(drv, depth + 1);

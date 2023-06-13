@@ -1,9 +1,8 @@
-#include <iostream>
 #include "driver.hh"
 
 int main(int argc, char* argv[]) {
   if (argc <= 1) {
-    std::cerr << "Usage: " << argv[0] << " source" << std::endl;
+    llvm::errs() << "Usage: " << argv[0] << " source\n";
     return 1;
   }
 
@@ -22,9 +21,12 @@ int main(int argc, char* argv[]) {
   int ans = drv.parse(std::string(argv[1]));
   if (ans == 0) {
     drv.root->codegen(drv, 0);
+    
+    if (drv.trace_codegen || drv.trace_parsing || drv.trace_scanning)
+      llvm::errs() << "\n\n";
+
+    drv.llvmModule->print(llvm::outs(), nullptr);
   }
   else
-    std::cout << "Error!" << std::endl;
-
-  drv.llvmModule->print(llvm::outs(), nullptr);
+    llvm::errs() << "Error!\n";
 }
