@@ -162,12 +162,12 @@ public:
 
 
 class VarExprAST : public ExprAST {
-  std::vector<std::unique_ptr<AssignmentExprAST>> declarations;
+  std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> declarations;
   std::unique_ptr<ExprAST> body;
 
 public:
   VarExprAST(
-    std::vector<std::unique_ptr<AssignmentExprAST>> declarations,
+    std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> declarations,
     std::unique_ptr<ExprAST> body
   );
 

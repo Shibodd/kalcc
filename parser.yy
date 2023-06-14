@@ -69,9 +69,8 @@
 %nterm <std::unique_ptr<ExprAST>> identifier_expr
 %nterm <std::unique_ptr<ExprAST>> for_step
 
-%nterm <std::unique_ptr<AssignmentExprAST>> varlist_var
-%nterm <std::vector<std::unique_ptr<AssignmentExprAST>>> varlist
-%nterm <std::unique_ptr<AssignmentExprAST>> assignment;
+%nterm <std::pair<std::string, std::unique_ptr<ExprAST>>> varlist_var
+%nterm <std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>>> varlist
 
 %nterm <std::vector<std::unique_ptr<ExprAST>>> opt_expr_list
 %nterm <std::vector<std::unique_ptr<ExprAST>>> expr_list
@@ -112,9 +111,6 @@ fun_ext:
 %left "*" "/";
 %left UMINUS;
 
-assignment:
-  "id" "=" expr { $$ = std::make_unique<AssignmentExprAST>($1, std::move($3)); }
-
 expr:
   "number" { $$ = std::make_unique<NumberExprAST>($1); }
   | expr "+" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Add, std::move($1), std::move($3)); }
@@ -127,7 +123,7 @@ expr:
   | expr ">=" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Gte, std::move($1), std::move($3)); }
   | expr "==" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Eq, std::move($1), std::move($3)); }
   | expr "!=" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Neq, std::move($1), std::move($3)); }
-  | assignment { $$ = std::move($1); }
+  | "id" "=" expr { $$ = std::make_unique<AssignmentExprAST>($1, std::move($3)); }
   | expr ":" expr { $$ = std::make_unique<CompositeExprAST>(std::move($1), std::move($3)); }
   | "-" expr %prec UMINUS { $$ = std::make_unique<UnaryExprAST>(UnaryOperator::NumericNeg, std::move($2)); }
   | identifier_expr { $$ = std::move($1); }
@@ -138,12 +134,12 @@ expr:
   | "var" varlist "in" expr "end" { $$ = std::make_unique<VarExprAST>(std::move($2), std::move($4)); }
 
 varlist:
-  varlist_var { auto v = std::vector<std::unique_ptr<AssignmentExprAST>>(); v.push_back(std::move($1)); $$ = std::move(v); }
+  varlist_var { std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> v; v.push_back(std::move($1)); $$ = std::move(v); }
   | varlist_var "," varlist { $3.insert($3.begin(), std::move($1)); $$ = std::move($3); }
 
 varlist_var:
-  "id" { $$ = std::make_unique<AssignmentExprAST>($1, std::make_unique<NumberExprAST>(0)); }
-  | assignment { $$ = std::move($1); }
+  "id" { $$ = std::make_pair($1, std::make_unique<NumberExprAST>(0)); }
+  | "id" "=" expr { $$ = std::make_pair($1, std::move($3)); }
 
 for_step:
   %empty { $$ = std::make_unique<NumberExprAST>(1.0); }

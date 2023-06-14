@@ -78,10 +78,12 @@ AssignmentExprAST::AssignmentExprAST(
     value_expr(std::move(value_expr)) {}
 
 VarExprAST::VarExprAST(
-    std::vector<std::unique_ptr<AssignmentExprAST>> declarations,
+    std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> declarations,
     std::unique_ptr<ExprAST> body)
   : declarations(std::move(declarations)),
     body(std::move(body)) {}
+
+
 
 /* CODE GENERATION */
 
@@ -95,6 +97,7 @@ static llvm::AllocaInst* createAllocaInEntryBlock(const driver& drv, llvm::Funct
   llvm::IRBuilder<> builder(&entryBlock, entryBlock.begin());
   return builder.CreateAlloca(llvm::Type::getDoubleTy(*drv.llvmContext), nullptr, varName);
 }
+
 
 #include <llvm/IR/Verifier.h>
 
@@ -322,7 +325,22 @@ llvm::Value* AssignmentExprAST::codegen(driver& drv, int depth) {
 
 llvm::Value* VarExprAST::codegen(driver& drv, int depth) {
   dbglog(drv, "VarExpr", "", depth);
-  return nullptr;
+
+  llvm::Function* F = drv.llvmIRBuilder->GetInsertBlock()->getParent();
+
+  for (auto &decl : this->declarations) {
+    llvm::Value* initValue = decl.second->codegen(drv, depth + 1);
+    assert(initValue);
+
+    if (drv.namedPointers[decl.first])
+      throw "Redefinition of variable " + decl.first;
+
+    llvm::AllocaInst* ptr = createAllocaInEntryBlock(drv, F, decl.first);
+    drv.llvmIRBuilder->CreateStore(initValue, ptr);
+    drv.namedPointers[decl.first] = ptr;
+  }
+
+  return this->body->codegen(drv, depth + 1);
 }
 
 
