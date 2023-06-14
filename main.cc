@@ -20,12 +20,21 @@ int main(int argc, char* argv[]) {
 
   int ans = drv.parse(std::string(argv[1]));
   if (ans == 0) {
-    drv.root->codegen(drv, 0);
-    
-    if (drv.trace_codegen || drv.trace_parsing || drv.trace_scanning)
-      llvm::errs() << "\n\n";
+    std::string error = "";
 
-    drv.llvmModule->print(llvm::outs(), nullptr);
+    try {
+      drv.root->codegen(drv, 0);
+    } catch (std::string& s) {
+      error = s;
+    }
+
+    if (drv.trace_codegen || drv.trace_parsing || drv.trace_scanning)
+      llvm::errs() << "\n";
+
+    if (error != "")
+      llvm::errs() << "Error: " << error << "\n";
+    else
+      drv.llvmModule->print(llvm::outs(), nullptr);
   }
   else
     llvm::errs() << "Error!\n";

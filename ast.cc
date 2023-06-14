@@ -71,13 +71,24 @@ WhileExprAST::WhileExprAST(
   : cond_expr(std::move(cond_expr)),
     body_expr(std::move(body_expr)) {}
 
+AssignmentExprAST::AssignmentExprAST(
+    std::string id_name,
+    std::unique_ptr<ExprAST> value_expr)
+  : id_name(id_name),
+    value_expr(std::move(value_expr)) {}
+
+VarExprAST::VarExprAST(
+    std::vector<std::unique_ptr<AssignmentExprAST>> declarations,
+    std::unique_ptr<ExprAST> body)
+  : declarations(std::move(declarations)),
+    body(std::move(body)) {}
+
 /* CODE GENERATION */
 
 static inline void dbglog(const driver& drv, const std::string& construct, const std::string& str, int depth) {
   if (drv.trace_codegen)
     llvm::errs() << std::string(depth, '\'') << "[" << construct << "] " << str << "\n";
 }
-
 
 #include <llvm/IR/Verifier.h>
 
@@ -281,15 +292,25 @@ llvm::Value* CompositeExprAST::codegen(driver& drv, int depth) {
 
 llvm::Value* ForExprAST::codegen(driver& drv, int depth)  {
   dbglog(drv, "For Expression", "", depth);
-
   return nullptr;
 }
 
 llvm::Value* WhileExprAST::codegen(driver& drv, int depth)  {
   dbglog(drv, "While Expression", "", depth);
-
   return nullptr;
 }
+
+llvm::Value* AssignmentExprAST::codegen(driver& drv, int depth) {
+  dbglog(drv, "Assignment", this->id_name, depth);
+  return nullptr;
+}
+
+llvm::Value* VarExprAST::codegen(driver& drv, int depth) {
+  dbglog(drv, "VarExpr", "", depth);
+  return nullptr;
+}
+
+
 
 
 llvm::Function* FunctionPrototypeAST::codegen(driver& drv, int depth) {

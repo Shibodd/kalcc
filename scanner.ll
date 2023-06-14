@@ -88,8 +88,9 @@ yy::parser::symbol_type parseKeyword(const std::string &s, const yy::location& l
   else if (s == "else")   return yy::parser::make_ELSE(loc);
   else if (s == "end")    return yy::parser::make_END(loc);
   else if (s == "for")    return yy::parser::make_FOR(loc);
-  else if (s == "while")    return yy::parser::make_WHILE(loc);
+  else if (s == "while")  return yy::parser::make_WHILE(loc);
   else if (s == "in")     return yy::parser::make_IN(loc);
+  else if (s == "var")    return yy::parser::make_VAR(loc);
   else
     return yy::parser::make_IDENTIFIER (yytext, loc);
 }

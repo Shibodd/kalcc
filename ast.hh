@@ -43,16 +43,9 @@ public:
 
 
 enum class BinaryOperator {
-  Add,
-  Sub,
-  Mul,
-  Div,
-  Gt,
-  Gte,
-  Lt,
-  Lte,
-  Eq,
-  Neq
+  Add, Sub, Mul, Div,
+  Gt, Gte, Lt, Lte,
+  Eq, Neq
 };
 
 class BinaryExprAST : public ExprAST {
@@ -152,6 +145,35 @@ public:
 
   llvm::Value* codegen(driver& drv, int depth) override;
 };
+
+
+class AssignmentExprAST : public ExprAST {
+  std::string id_name;
+  std::unique_ptr<ExprAST> value_expr;
+
+public:
+  AssignmentExprAST(
+    std::string id_name,
+    std::unique_ptr<ExprAST> value_expr
+  );
+
+  llvm::Value* codegen(driver& drv, int depth) override;
+};
+
+
+class VarExprAST : public ExprAST {
+  std::vector<std::unique_ptr<AssignmentExprAST>> declarations;
+  std::unique_ptr<ExprAST> body;
+
+public:
+  VarExprAST(
+    std::vector<std::unique_ptr<AssignmentExprAST>> declarations,
+    std::unique_ptr<ExprAST> body
+  );
+
+  llvm::Value* codegen(driver& drv, int  depth) override;
+};
+
 
 /* STATEMENTS */
 
