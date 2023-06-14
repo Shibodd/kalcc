@@ -8,6 +8,7 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IR/Function.h"
 
 # define YY_DECL yy::parser::symbol_type yylex(driver& drv)
 

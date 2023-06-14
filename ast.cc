@@ -37,11 +37,11 @@ FunctionAST::FunctionAST(std::unique_ptr<FunctionPrototypeAST> prototype, std::u
 
 IfExprAST::IfExprAST(
       std::unique_ptr<ExprAST> cond_expr,
-      std::unique_ptr<ExprAST> true_expr,
-      std::unique_ptr<ExprAST> false_expr)
+      std::unique_ptr<ExprAST> then_expr,
+      std::unique_ptr<ExprAST> else_expr)
   : cond_expr(std::move(cond_expr)),
-    true_expr(std::move(true_expr)),
-    false_expr(std::move(false_expr)) {}
+    then_expr(std::move(then_expr)),
+    else_expr(std::move(else_expr)) {}
 
 
 /* CODE GENERATION */
@@ -121,10 +121,13 @@ llvm::Value* CallExprAST::codegen(driver& drv, int depth) {
 }
 
 llvm::Value* IfExprAST::codegen(driver& drv, int depth) {
+  dbglog(drv, "If expression", "", depth);
+
   // Condition
   llvm::Value* cond_val = this->cond_expr->codegen(drv, depth + 1);
   assert(cond_val);
-  drv.llvmIRBuilder->CreateFCmpONE(
+  
+  llvm::Value* bool_cond_val = drv.llvmIRBuilder->CreateFCmpONE(
     cond_val,
     llvm::ConstantFP::get(*drv.llvmContext, llvm::APFloat(0.0)),
     "ifcond"
@@ -137,13 +140,13 @@ llvm::Value* IfExprAST::codegen(driver& drv, int depth) {
   llvm::BasicBlock *elseBB = llvm::BasicBlock::Create(*drv.llvmContext, "else");
   llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(*drv.llvmContext, "ifcont");
 
-  
   // Conditional branch
-  drv.llvmIRBuilder->CreateCondBr(cond_val, thenBB, elseBB);
-
+  drv.llvmIRBuilder->CreateCondBr(bool_cond_val, thenBB, elseBB);
   
   // Then
-  F->insert(F->end(), thenBB);
+  auto& bblist = F->getBasicBlockList();
+
+  bblist.insert(bblist.end(), thenBB);
   drv.llvmIRBuilder->SetInsertPoint(thenBB);
 
   llvm::Value* then_val = this->then_expr->codegen(drv, depth + 1);
@@ -154,7 +157,7 @@ llvm::Value* IfExprAST::codegen(driver& drv, int depth) {
 
   
   // Else
-  F->insert(F->end(), elseBB);
+  bblist.insert(bblist.end(), elseBB);
   drv.llvmIRBuilder->SetInsertPoint(elseBB);
 
   llvm::Value* else_val = this->else_expr->codegen(drv, depth + 1);
@@ -165,9 +168,9 @@ llvm::Value* IfExprAST::codegen(driver& drv, int depth) {
 
 
   // Merge
-  F->insert(F->end(), mergeBB);
+  bblist.insert(bblist.end(), mergeBB);
   drv.llvmIRBuilder->SetInsertPoint(mergeBB);
-  llvm::PHINode *PN = Builder->CreatePHI(Type::getDoubleTy(*drv.llvmContext), 2, "iftmp");
+  llvm::PHINode *PN = drv.llvmIRBuilder->CreatePHI(llvm::Type::getDoubleTy(*drv.llvmContext), 2, "iftmp");
 
   PN->addIncoming(then_val, thenBB);
   PN->addIncoming(else_val, elseBB);

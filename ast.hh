@@ -77,13 +77,13 @@ public:
 
 
 class IfExprAST : public ExprAST {
-  std::unique_ptr<ExprAST> cond_expr, true_expr, false_expr;
+  std::unique_ptr<ExprAST> cond_expr, then_expr, else_expr;
 
 public:
   IfExprAST(
       std::unique_ptr<ExprAST> cond_expr,
-      std::unique_ptr<ExprAST> true_expr,
-      std::unique_ptr<ExprAST> false_expr);
+      std::unique_ptr<ExprAST> then_expr,
+      std::unique_ptr<ExprAST> else_expr);
   
   llvm::Value* codegen(driver& drv, int depth) override;
 };
