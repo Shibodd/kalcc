@@ -69,6 +69,24 @@ public:
 };
 
 
+enum class UnaryOperator {
+  NumericNeg
+};
+
+class UnaryExprAST : public ExprAST {
+  UnaryOperator op;
+  std::unique_ptr<ExprAST> operand;
+
+public:
+  UnaryExprAST(
+    UnaryOperator op,
+    std::unique_ptr<ExprAST> operand);
+  
+  llvm::Value* codegen(driver& drv, int depth) override;
+};
+
+
+
 class CallExprAST : public ExprAST {
   std::string callee;
   std::vector<std::unique_ptr<ExprAST>> args;

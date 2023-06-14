@@ -94,6 +94,7 @@ fun_ext:
 %nonassoc "<" "<=" ">" ">=" "==" "!=";
 %left "+" "-";
 %left "*" "/";
+%left UMINUS;
 
 expr:
   "number" { $$ = std::make_unique<NumberExprAST>($1); }
@@ -107,6 +108,7 @@ expr:
   | expr ">=" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Gte, std::move($1), std::move($3)); }
   | expr "==" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Eq, std::move($1), std::move($3)); }
   | expr "!=" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Neq, std::move($1), std::move($3)); }
+  | "-" expr %prec UMINUS { $$ = std::make_unique<UnaryExprAST>(UnaryOperator::NumericNeg, std::move($2)); }
   | identifier_expr { $$ = std::move($1); }
   | "(" expr ")" { $$ = std::move($2); }
   | ifexpr { $$ = std::move($1); }

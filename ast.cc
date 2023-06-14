@@ -18,6 +18,10 @@ BinaryExprAST::BinaryExprAST(
     lhs(std::move(lhs)),
     rhs(std::move(rhs)) {}
 
+UnaryExprAST::UnaryExprAST(UnaryOperator op, std::unique_ptr<ExprAST> operand)
+  : op(op),
+    operand(std::move(operand)) {}
+
 CallExprAST::CallExprAST(const std::string &callee, std::vector<std::unique_ptr<ExprAST>> args)
   : callee(callee),
     args(std::move(args)) {}
@@ -104,39 +108,58 @@ llvm::Value* BinaryExprAST::codegen(driver& drv, int depth) {
 
     case BinaryOperator::Gt:
       return drv.llvmIRBuilder->CreateUIToFP(
-        drv.llvmIRBuilder->CreateFCmpUGT(lhs, rhs, "booltmp"),
+        drv.llvmIRBuilder->CreateFCmpOGT(lhs, rhs, "booltmp"),
         llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
       );
 
     case BinaryOperator::Lt:
       return drv.llvmIRBuilder->CreateUIToFP(
-        drv.llvmIRBuilder->CreateFCmpULT(lhs, rhs, "booltmp"),
+        drv.llvmIRBuilder->CreateFCmpOLT(lhs, rhs, "booltmp"),
         llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
       );
 
     case BinaryOperator::Gte:
       return drv.llvmIRBuilder->CreateUIToFP(
-        drv.llvmIRBuilder->CreateFCmpUGE(lhs, rhs, "booltmp"),
+        drv.llvmIRBuilder->CreateFCmpOGE(lhs, rhs, "booltmp"),
         llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
       );
 
     case BinaryOperator::Lte:
       return drv.llvmIRBuilder->CreateUIToFP(
-        drv.llvmIRBuilder->CreateFCmpULE(lhs, rhs, "booltmp"),
+        drv.llvmIRBuilder->CreateFCmpOLE(lhs, rhs, "booltmp"),
         llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
       );
     
     case BinaryOperator::Eq:
       return drv.llvmIRBuilder->CreateUIToFP(
-        drv.llvmIRBuilder->CreateFCmpUEQ(lhs, rhs, "booltmp"),
+        drv.llvmIRBuilder->CreateFCmpOEQ(lhs, rhs, "booltmp"),
         llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
       );
     
     case BinaryOperator::Neq:
       return drv.llvmIRBuilder->CreateUIToFP(
-        drv.llvmIRBuilder->CreateFCmpUNE(lhs, rhs, "booltmp"),
+        drv.llvmIRBuilder->CreateFCmpONE(lhs, rhs, "booltmp"),
         llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
       );
+  }
+
+  assert(false);
+}
+
+llvm::Value* UnaryExprAST::codegen(driver& drv, int depth) {
+  static const std::map<UnaryOperator, std::string> UNOP_NAMES = {
+    { UnaryOperator::NumericNeg, "NumericNeg" }
+  };
+
+  dbglog(drv, "Unary expression", UNOP_NAMES.at(this->op), depth);
+
+  llvm::Value* op_value = this->operand->codegen(drv, depth + 1);
+
+  assert(op_value);
+
+  switch (this->op) {
+    case UnaryOperator::NumericNeg:
+      return drv.llvmIRBuilder->CreateFNeg(op_value, "numnegtmp");
   }
 
   assert(false);
