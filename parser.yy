@@ -129,7 +129,22 @@ expr:
   | identifier_expr { $$ = std::move($1); }
   | "(" expr ")" { $$ = std::move($2); }
   | "if" expr "then" expr "else" expr "end" { $$ = std::make_unique<IfExprAST>(std::move($2), std::move($4), std::move($6)); }
-  | "for" "id" "=" expr "," expr for_step "in" expr "end" { $$ = std::make_unique<ForExprAST>($2, std::move($4), std::move($6), std::move($7), std::move($9)); }
+  | "for" "id" "=" expr "," expr for_step "in" expr "end"
+      {
+        $$ = std::make_unique<ForExprAST>(
+          std::make_unique<AssignmentExprAST>($2, std::move($4)),
+          std::move($6), 
+          std::make_unique<AssignmentExprAST>(
+            $2,
+            std::make_unique<BinaryExprAST>(
+              BinaryOperator::Add,
+              std::make_unique<VariableExprAST>($2),
+              std::move($7)
+            )
+          ),
+          std::move($9)
+        );
+      }
   | "while" expr "in" expr "end" { $$ = std::make_unique<WhileExprAST>(std::move($2), std::move($4)); }
   | "var" varlist "in" expr "end" { $$ = std::make_unique<VarExprAST>(std::move($2), std::move($4)); }
 

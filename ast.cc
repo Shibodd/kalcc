@@ -54,13 +54,11 @@ CompositeExprAST::CompositeExprAST(
     next(std::move(next)) {}
 
 ForExprAST::ForExprAST(
-    std::string id_name,
-    std::unique_ptr<ExprAST> init_expr,
+    std::unique_ptr<AssignmentExprAST> init_expr,
     std::unique_ptr<ExprAST> cond_expr,
-    std::unique_ptr<ExprAST> step_expr,
+    std::unique_ptr<AssignmentExprAST>  step_expr,
     std::unique_ptr<ExprAST> body_expr)
-  : id_name(id_name),
-    init_expr(std::move(init_expr)),
+  : init_expr(std::move(init_expr)),
     cond_expr(std::move(cond_expr)),
     step_expr(std::move(step_expr)),
     body_expr(std::move(body_expr)) {}
@@ -76,13 +74,14 @@ AssignmentExprAST::AssignmentExprAST(
     std::unique_ptr<ExprAST> value_expr)
   : id_name(id_name),
     value_expr(std::move(value_expr)) {}
+const std::string& AssignmentExprAST::getDestinationName() const { return id_name; }
+
 
 VarExprAST::VarExprAST(
     std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> declarations,
     std::unique_ptr<ExprAST> body)
   : declarations(std::move(declarations)),
     body(std::move(body)) {}
-
 
 
 /* CODE GENERATION */
@@ -98,6 +97,27 @@ static llvm::AllocaInst* createAllocaInEntryBlock(const driver& drv, llvm::Funct
   return builder.CreateAlloca(llvm::Type::getDoubleTy(*drv.llvmContext), nullptr, varName);
 }
 
+static llvm::AllocaInst* createVar(driver& drv, llvm::Function* F, const std::string& name, llvm::Value* initValue = nullptr) {
+  if (drv.namedPointers[name])
+    throw "Redefinition of variable " + name;
+
+  llvm::AllocaInst* ptr = createAllocaInEntryBlock(drv, F, name);
+
+  drv.namedPointers[name] = ptr;
+
+  if (initValue)
+    drv.llvmIRBuilder->CreateStore(initValue, ptr);
+    
+  return ptr;
+}
+
+static llvm::AllocaInst* getVar(driver& drv, const std::string& name) {
+  llvm::AllocaInst* ptr = drv.namedPointers[name];
+  if (!ptr)
+    throw "Unknown variable name: " + name;
+  return ptr;
+}
+
 static llvm::Value* doubleToBoolean(const driver& drv, llvm::Value* cond_val) {
   return drv.llvmIRBuilder->CreateFCmpONE(
     cond_val,
@@ -106,15 +126,20 @@ static llvm::Value* doubleToBoolean(const driver& drv, llvm::Value* cond_val) {
   );
 }
 
+static llvm::Value* booleanToDouble(const driver& drv, llvm::Value* cond_val) {
+  return drv.llvmIRBuilder->CreateUIToFP(
+    cond_val,
+    llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
+  );
+}
+
+
 #include <llvm/IR/Verifier.h>
 
 llvm::Value* VariableExprAST::codegen(driver& drv, int depth) {
   dbglog(drv, "Variable", this->name, depth);
 
-  llvm::AllocaInst* ptr = drv.namedPointers[this->name];
-  if (!ptr)
-    throw "Unknown variable name: " + this->name;
-
+  llvm::AllocaInst* ptr = getVar(drv, this->name);
   return drv.llvmIRBuilder->CreateLoad(ptr->getAllocatedType(), ptr, this->name);
 }
 
@@ -147,49 +172,25 @@ llvm::Value* BinaryExprAST::codegen(driver& drv, int depth) {
 
   switch (this->op) {
     case BinaryOperator::Add:
-      return drv.llvmIRBuilder->CreateFAdd(lhs, rhs, "addtmp");
+      return drv.llvmIRBuilder->CreateFAdd(lhs, rhs, "add_tmp");
     case BinaryOperator::Sub:
-      return drv.llvmIRBuilder->CreateFSub(lhs, rhs, "subtmp");
+      return drv.llvmIRBuilder->CreateFSub(lhs, rhs, "sub_tmp");
     case BinaryOperator::Mul:
-      return drv.llvmIRBuilder->CreateFMul(lhs, rhs, "multmp");
+      return drv.llvmIRBuilder->CreateFMul(lhs, rhs, "mul_tmp");
     case BinaryOperator::Div:
-      return drv.llvmIRBuilder->CreateFDiv(lhs, rhs, "divtmp");
-
+      return drv.llvmIRBuilder->CreateFDiv(lhs, rhs, "div_tmp");
     case BinaryOperator::Gt:
-      return drv.llvmIRBuilder->CreateUIToFP(
-        drv.llvmIRBuilder->CreateFCmpOGT(lhs, rhs, "booltmp"),
-        llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
-      );
-
+      return booleanToDouble(drv, drv.llvmIRBuilder->CreateFCmpOGT(lhs, rhs, "gt_tmp"));
     case BinaryOperator::Lt:
-      return drv.llvmIRBuilder->CreateUIToFP(
-        drv.llvmIRBuilder->CreateFCmpOLT(lhs, rhs, "booltmp"),
-        llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
-      );
-
+      return booleanToDouble(drv, drv.llvmIRBuilder->CreateFCmpOLT(lhs, rhs, "lt_tmp"));
     case BinaryOperator::Gte:
-      return drv.llvmIRBuilder->CreateUIToFP(
-        drv.llvmIRBuilder->CreateFCmpOGE(lhs, rhs, "booltmp"),
-        llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
-      );
-
+      return booleanToDouble(drv, drv.llvmIRBuilder->CreateFCmpOGE(lhs, rhs, "gte_tmp"));
     case BinaryOperator::Lte:
-      return drv.llvmIRBuilder->CreateUIToFP(
-        drv.llvmIRBuilder->CreateFCmpOLE(lhs, rhs, "booltmp"),
-        llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
-      );
-    
+      return booleanToDouble(drv, drv.llvmIRBuilder->CreateFCmpOLE(lhs, rhs, "lte_tmp"));
     case BinaryOperator::Eq:
-      return drv.llvmIRBuilder->CreateUIToFP(
-        drv.llvmIRBuilder->CreateFCmpOEQ(lhs, rhs, "booltmp"),
-        llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
-      );
-    
+      return booleanToDouble(drv, drv.llvmIRBuilder->CreateFCmpOEQ(lhs, rhs, "eq_tmp"));
     case BinaryOperator::Neq:
-      return drv.llvmIRBuilder->CreateUIToFP(
-        drv.llvmIRBuilder->CreateFCmpONE(lhs, rhs, "booltmp"),
-        llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
-      );
+      return booleanToDouble(drv, drv.llvmIRBuilder->CreateFCmpONE(lhs, rhs, "neq_tmp"));
   }
 
   assert(false);
@@ -208,7 +209,7 @@ llvm::Value* UnaryExprAST::codegen(driver& drv, int depth) {
 
   switch (this->op) {
     case UnaryOperator::NumericNeg:
-      return drv.llvmIRBuilder->CreateFNeg(op_value, "numnegtmp");
+      return drv.llvmIRBuilder->CreateFNeg(op_value, "num_neg_tmp");
   }
 
   assert(false);
@@ -231,7 +232,7 @@ llvm::Value* CallExprAST::codegen(driver& drv, int depth) {
       return nullptr;
   }
 
-  return drv.llvmIRBuilder->CreateCall(fun, args, "calltmp");
+  return drv.llvmIRBuilder->CreateCall(fun, args, "call_tmp");
 }
 
 llvm::Value* IfExprAST::codegen(driver& drv, int depth) {
@@ -246,7 +247,7 @@ llvm::Value* IfExprAST::codegen(driver& drv, int depth) {
   llvm::Function *F = drv.llvmIRBuilder->GetInsertBlock()->getParent();
   llvm::BasicBlock *thenBB = llvm::BasicBlock::Create(*drv.llvmContext, "then");
   llvm::BasicBlock *elseBB = llvm::BasicBlock::Create(*drv.llvmContext, "else");
-  llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(*drv.llvmContext, "ifcont");
+  llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(*drv.llvmContext, "ifexit");
   auto& bblist = F->getBasicBlockList();
 
   // Conditional branch
@@ -277,7 +278,7 @@ llvm::Value* IfExprAST::codegen(driver& drv, int depth) {
   // Merge
   bblist.insert(bblist.end(), mergeBB);
   drv.llvmIRBuilder->SetInsertPoint(mergeBB);
-  llvm::PHINode *PN = drv.llvmIRBuilder->CreatePHI(llvm::Type::getDoubleTy(*drv.llvmContext), 2, "iftmp");
+  llvm::PHINode *PN = drv.llvmIRBuilder->CreatePHI(llvm::Type::getDoubleTy(*drv.llvmContext), 2, "if_tmp");
 
   PN->addIncoming(then_val, thenBB);
   PN->addIncoming(else_val, elseBB);
@@ -300,7 +301,63 @@ llvm::Value* CompositeExprAST::codegen(driver& drv, int depth) {
 
 llvm::Value* ForExprAST::codegen(driver& drv, int depth)  {
   dbglog(drv, "For Expression", "", depth);
-  return nullptr;
+
+  // CFG
+  llvm::Function* F = drv.llvmIRBuilder->GetInsertBlock()->getParent();
+  llvm::BasicBlock* header = llvm::BasicBlock::Create(*drv.llvmContext, "header", F);
+  llvm::BasicBlock* body = llvm::BasicBlock::Create(*drv.llvmContext, "body", F);
+  llvm::BasicBlock* exitBlock = llvm::BasicBlock::Create(*drv.llvmContext, "exitBlock", F);
+
+  llvm::AllocaInst* exitValuePtr = createAllocaInEntryBlock(drv,  F, "exitValuePtr");
+
+  createVar(drv, F, this->init_expr->getDestinationName());
+
+  /* PREHEADER */
+
+  // Initialize exit value to 0.
+  drv.llvmIRBuilder->CreateStore(
+    llvm::ConstantFP::get(*drv.llvmContext, llvm::APFloat(llvm::APFloat(0.0))),
+    exitValuePtr
+  );
+
+  // Initialize induction variable
+  this->init_expr->codegen(drv, depth + 1);
+
+  drv.llvmIRBuilder->CreateBr(header);
+  
+
+
+  /* HEADER */
+  drv.llvmIRBuilder->SetInsertPoint(header);
+
+  llvm::Value* cond_val = this->cond_expr->codegen(drv, depth + 1);
+  assert(cond_val);
+
+  drv.llvmIRBuilder->CreateCondBr(
+    doubleToBoolean(drv, cond_val), 
+    body, 
+    exitBlock
+  );
+  
+
+  /* BODY */
+  drv.llvmIRBuilder->SetInsertPoint(body);
+
+  llvm::Value* body_val = this->body_expr->codegen(drv, depth + 1);
+  assert(body_val);
+
+  // Store the exit value.
+  drv.llvmIRBuilder->CreateStore(body_val, exitValuePtr);
+
+  // Increment the induction variable.
+  this->step_expr->codegen(drv, depth + 1);
+
+  drv.llvmIRBuilder->CreateBr(header);
+
+
+  /* EXIT BLOCK */
+  drv.llvmIRBuilder->SetInsertPoint(exitBlock);
+  return drv.llvmIRBuilder->CreateLoad(exitValuePtr->getAllocatedType(), exitValuePtr);
 }
 
 llvm::Value* WhileExprAST::codegen(driver& drv, int depth)  {
@@ -358,11 +415,7 @@ llvm::Value* AssignmentExprAST::codegen(driver& drv, int depth) {
   llvm::Value* value = this->value_expr->codegen(drv, depth);
   assert(value);
 
-  llvm::Value *ptr = drv.namedPointers[this->id_name];
-  if (!ptr)
-    throw "Unknown variable name: " + this->id_name;
-
-  drv.llvmIRBuilder->CreateStore(value, ptr);
+  drv.llvmIRBuilder->CreateStore(value, getVar(drv, this->id_name));
   return value;
 }
 
@@ -380,12 +433,7 @@ llvm::Value* VarExprAST::codegen(driver& drv, int depth) {
       llvm::Value* initValue = decl.second->codegen(drv, depth + 1);
       assert(initValue);
 
-      if (drv.namedPointers[decl.first])
-        throw "Redefinition of variable " + decl.first;
-
-      llvm::AllocaInst* ptr = createAllocaInEntryBlock(drv, F, decl.first);
-      drv.llvmIRBuilder->CreateStore(initValue, ptr);
-      drv.namedPointers[decl.first] = ptr;
+      createVar(drv, F, decl.first, initValue);
     }
   } else {
     dbglog(drv, "VarExpr", "", depth);
@@ -428,11 +476,8 @@ llvm::Value* FunctionAST::codegen(driver& drv, int depth) {
   drv.llvmIRBuilder->SetInsertPoint(entryBB);
 
   drv.namedPointers.clear();
-  for (auto &arg : F->args()) {
-    llvm::AllocaInst* ptr = createAllocaInEntryBlock(drv, F, std::string(arg.getName()));
-    drv.llvmIRBuilder->CreateStore(&arg, ptr);
-    drv.namedPointers[std::string(arg.getName())] = ptr;
-  }
+  for (auto &arg : F->args())
+    createVar(drv, F, std::string(arg.getName()), &arg);
 
   llvm::Value *returnValue = this->body->codegen(drv, depth + 1);
   assert(returnValue);

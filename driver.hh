@@ -24,7 +24,7 @@ public:
   std::unique_ptr<llvm::LLVMContext> llvmContext;
   std::unique_ptr<llvm::Module> llvmModule;
   std::unique_ptr<llvm::IRBuilder<>> llvmIRBuilder;
-  std::map<std::string, llvm::AllocaInst*> namedPointers;
+  std::map<const std::string, llvm::AllocaInst*> namedPointers;
 
   std::unique_ptr<RootAST> root;
 

@@ -118,17 +118,30 @@ public:
   llvm::Value* codegen(driver& drv, int depth) override;
 };
 
+class AssignmentExprAST : public ExprAST {
+  std::string id_name;
+  std::unique_ptr<ExprAST> value_expr;
+
+public:
+  AssignmentExprAST(
+    std::string id_name,
+    std::unique_ptr<ExprAST> value_expr
+  );
+
+  llvm::Value* codegen(driver& drv, int depth) override;
+
+  const std::string &getDestinationName() const;
+};
 
 class ForExprAST : public ExprAST {
-  std::string id_name;
-  std::unique_ptr<ExprAST> init_expr, cond_expr, step_expr, body_expr;
+  std::unique_ptr<AssignmentExprAST> init_expr, step_expr;
+  std::unique_ptr<ExprAST> cond_expr, body_expr;
 
 public:
   ForExprAST(
-    std::string id_name,
-    std::unique_ptr<ExprAST> init_expr,
+    std::unique_ptr<AssignmentExprAST> init_expr,
     std::unique_ptr<ExprAST> cond_expr,
-    std::unique_ptr<ExprAST> step_expr,
+    std::unique_ptr<AssignmentExprAST> step_expr,
     std::unique_ptr<ExprAST> body_expr);
 
   llvm::Value* codegen(driver& drv, int depth) override;
@@ -142,20 +155,6 @@ public:
   WhileExprAST(
     std::unique_ptr<ExprAST> cond_expr,
     std::unique_ptr<ExprAST> body_expr);
-
-  llvm::Value* codegen(driver& drv, int depth) override;
-};
-
-
-class AssignmentExprAST : public ExprAST {
-  std::string id_name;
-  std::unique_ptr<ExprAST> value_expr;
-
-public:
-  AssignmentExprAST(
-    std::string id_name,
-    std::unique_ptr<ExprAST> value_expr
-  );
 
   llvm::Value* codegen(driver& drv, int depth) override;
 };
