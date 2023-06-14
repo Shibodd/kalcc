@@ -1,7 +1,4 @@
 def fibi(x)
-  var a = 1 in
-  (
-    a = a + 1 :
-    a = a + 1
-  ) end : 
-  a;
+  x = x + 1 :
+  x = x + 2 :
+  x;

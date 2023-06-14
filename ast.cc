@@ -90,17 +90,22 @@ static inline void dbglog(const driver& drv, const std::string& construct, const
     llvm::errs() << std::string(depth, '\'') << "[" << construct << "] " << str << "\n";
 }
 
+static llvm::AllocaInst* createAllocaInEntryBlock(const driver& drv, llvm::Function *F, const std::string &varName) {
+  llvm::BasicBlock& entryBlock = F->getEntryBlock();
+  llvm::IRBuilder<> builder(&entryBlock, entryBlock.begin());
+  return builder.CreateAlloca(llvm::Type::getDoubleTy(*drv.llvmContext), nullptr, varName);
+}
+
 #include <llvm/IR/Verifier.h>
 
 llvm::Value* VariableExprAST::codegen(driver& drv, int depth) {
   dbglog(drv, "Variable", this->name, depth);
 
-  llvm::Value* val = drv.namedValues[this->name];
-
-  if (!val)
+  llvm::AllocaInst* ptr = drv.namedPointers[this->name];
+  if (!ptr)
     throw "Unknown variable name: " + this->name;
 
-  return val;
+  return drv.llvmIRBuilder->CreateLoad(ptr->getAllocatedType(), ptr, this->name);
 }
 
 llvm::Value* NumberExprAST::codegen(driver& drv, int depth) {
@@ -302,7 +307,17 @@ llvm::Value* WhileExprAST::codegen(driver& drv, int depth)  {
 
 llvm::Value* AssignmentExprAST::codegen(driver& drv, int depth) {
   dbglog(drv, "Assignment", this->id_name, depth);
-  return nullptr;
+  assert(this->value_expr);
+
+  llvm::Value* value = this->value_expr->codegen(drv, depth);
+  assert(value);
+
+  llvm::Value *ptr = drv.namedPointers[this->id_name];
+  if (!ptr)
+    throw "Unknown variable name: " + this->id_name;
+
+  drv.llvmIRBuilder->CreateStore(value, ptr);
+  return value;
 }
 
 llvm::Value* VarExprAST::codegen(driver& drv, int depth) {
@@ -332,7 +347,7 @@ llvm::Function* FunctionPrototypeAST::codegen(driver& drv, int depth) {
 llvm::Value* FunctionAST::codegen(driver& drv, int depth) {
   dbglog(drv, "Function", this->prototype->getName(), depth);
 
-  llvm::Function *F = drv.llvmModule->getFunction(this->prototype->getName());
+  llvm::Function* F = drv.llvmModule->getFunction(this->prototype->getName());
   if (!F)
     F = this->prototype->codegen(drv, depth + 1);
 
@@ -341,12 +356,15 @@ llvm::Value* FunctionAST::codegen(driver& drv, int depth) {
   if (!F->empty())
     throw "Redefinition of function " + F->getName();
 
-  llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(*drv.llvmContext, "entry", F);
+  llvm::BasicBlock* entryBB = llvm::BasicBlock::Create(*drv.llvmContext, "entry", F);
   drv.llvmIRBuilder->SetInsertPoint(entryBB);
 
-  drv.namedValues.clear(); // ????
-  for (auto &arg : F->args())
-    drv.namedValues[std::string(arg.getName())] = &arg;
+  drv.namedPointers.clear();
+  for (auto &arg : F->args()) {
+    llvm::AllocaInst* ptr = createAllocaInEntryBlock(drv, F, std::string(arg.getName()));
+    drv.llvmIRBuilder->CreateStore(&arg, ptr);
+    drv.namedPointers[std::string(arg.getName())] = ptr;
+  }
 
   llvm::Value *returnValue = this->body->codegen(drv, depth + 1);
   assert(returnValue);
