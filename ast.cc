@@ -98,6 +98,13 @@ static llvm::AllocaInst* createAllocaInEntryBlock(const driver& drv, llvm::Funct
   return builder.CreateAlloca(llvm::Type::getDoubleTy(*drv.llvmContext), nullptr, varName);
 }
 
+static llvm::Value* doubleToBoolean(const driver& drv, llvm::Value* cond_val) {
+  return drv.llvmIRBuilder->CreateFCmpONE(
+    cond_val,
+    llvm::ConstantFP::get(*drv.llvmContext, llvm::APFloat(0.0)),
+    "cond"
+  );
+}
 
 #include <llvm/IR/Verifier.h>
 
@@ -233,26 +240,19 @@ llvm::Value* IfExprAST::codegen(driver& drv, int depth) {
   // Condition
   llvm::Value* cond_val = this->cond_expr->codegen(drv, depth + 1);
   assert(cond_val);
-  
-  llvm::Value* bool_cond_val = drv.llvmIRBuilder->CreateFCmpONE(
-    cond_val,
-    llvm::ConstantFP::get(*drv.llvmContext, llvm::APFloat(0.0)),
-    "ifcond"
-  );
+  cond_val = doubleToBoolean(drv, cond_val);
 
-  
   // CFG
   llvm::Function *F = drv.llvmIRBuilder->GetInsertBlock()->getParent();
   llvm::BasicBlock *thenBB = llvm::BasicBlock::Create(*drv.llvmContext, "then");
   llvm::BasicBlock *elseBB = llvm::BasicBlock::Create(*drv.llvmContext, "else");
   llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(*drv.llvmContext, "ifcont");
-
-  // Conditional branch
-  drv.llvmIRBuilder->CreateCondBr(bool_cond_val, thenBB, elseBB);
-  
-  // Then
   auto& bblist = F->getBasicBlockList();
 
+  // Conditional branch
+  drv.llvmIRBuilder->CreateCondBr(cond_val, thenBB, elseBB);
+  
+  // Then
   bblist.insert(bblist.end(), thenBB);
   drv.llvmIRBuilder->SetInsertPoint(thenBB);
 
@@ -305,7 +305,50 @@ llvm::Value* ForExprAST::codegen(driver& drv, int depth)  {
 
 llvm::Value* WhileExprAST::codegen(driver& drv, int depth)  {
   dbglog(drv, "While Expression", "", depth);
-  return nullptr;
+
+
+  // CFG
+  llvm::Function* F = drv.llvmIRBuilder->GetInsertBlock()->getParent();
+  llvm::BasicBlock* header = llvm::BasicBlock::Create(*drv.llvmContext, "header", F);
+  llvm::BasicBlock* body = llvm::BasicBlock::Create(*drv.llvmContext, "body", F);
+  llvm::BasicBlock* exitBlock = llvm::BasicBlock::Create(*drv.llvmContext, "exitBlock", F);
+
+
+  // Create a default exit value of 0.
+  llvm::AllocaInst* exitValuePtr = createAllocaInEntryBlock(drv,  F, "exitValuePtr");
+
+
+  // Preheader
+  drv.llvmIRBuilder->CreateStore(
+    llvm::ConstantFP::get(*drv.llvmContext, llvm::APFloat(llvm::APFloat(0.0))),
+    exitValuePtr
+  );
+  drv.llvmIRBuilder->CreateBr(header);
+  
+
+  // Header
+  drv.llvmIRBuilder->SetInsertPoint(header);
+
+  llvm::Value* cond_val = this->cond_expr->codegen(drv, depth + 1);
+  assert(cond_val);
+  cond_val = doubleToBoolean(drv, cond_val);
+
+  drv.llvmIRBuilder->CreateCondBr(cond_val, body, exitBlock);
+  
+
+  // Body
+  drv.llvmIRBuilder->SetInsertPoint(body);
+
+  llvm::Value* body_val = this->body_expr->codegen(drv, depth + 1);
+  assert(body_val);
+
+  drv.llvmIRBuilder->CreateStore(body_val, exitValuePtr);
+  drv.llvmIRBuilder->CreateBr(header);
+
+
+  // Exit block
+  drv.llvmIRBuilder->SetInsertPoint(exitBlock);
+  return drv.llvmIRBuilder->CreateLoad(exitValuePtr->getAllocatedType(), exitValuePtr);
 }
 
 llvm::Value* AssignmentExprAST::codegen(driver& drv, int depth) {
