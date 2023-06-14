@@ -324,25 +324,32 @@ llvm::Value* AssignmentExprAST::codegen(driver& drv, int depth) {
 }
 
 llvm::Value* VarExprAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "VarExpr", "", depth);
+  if (this->declarations.size() > 0) {
 
-  llvm::Function* F = drv.llvmIRBuilder->GetInsertBlock()->getParent();
+    std::string varnames = this->declarations[0].first;
+    for (auto &decl : this->declarations)
+      varnames.append(", " + decl.first);
+    dbglog(drv, "VarExpr", varnames, depth);
 
-  for (auto &decl : this->declarations) {
-    llvm::Value* initValue = decl.second->codegen(drv, depth + 1);
-    assert(initValue);
+    llvm::Function* F = drv.llvmIRBuilder->GetInsertBlock()->getParent();
 
-    if (drv.namedPointers[decl.first])
-      throw "Redefinition of variable " + decl.first;
+    for (auto &decl : this->declarations) {
+      llvm::Value* initValue = decl.second->codegen(drv, depth + 1);
+      assert(initValue);
 
-    llvm::AllocaInst* ptr = createAllocaInEntryBlock(drv, F, decl.first);
-    drv.llvmIRBuilder->CreateStore(initValue, ptr);
-    drv.namedPointers[decl.first] = ptr;
+      if (drv.namedPointers[decl.first])
+        throw "Redefinition of variable " + decl.first;
+
+      llvm::AllocaInst* ptr = createAllocaInEntryBlock(drv, F, decl.first);
+      drv.llvmIRBuilder->CreateStore(initValue, ptr);
+      drv.namedPointers[decl.first] = ptr;
+    }
+  } else {
+    dbglog(drv, "VarExpr", "", depth);
   }
 
   return this->body->codegen(drv, depth + 1);
 }
-
 
 
 
