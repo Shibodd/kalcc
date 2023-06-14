@@ -113,6 +113,18 @@ public:
 };
 
 
+class CompositeExprAST : public ExprAST {
+  std::unique_ptr<ExprAST> current;
+  std::unique_ptr<ExprAST> next;
+
+public:
+  CompositeExprAST(
+    std::unique_ptr<ExprAST> current,
+    std::unique_ptr<ExprAST> next);
+  
+  llvm::Value* codegen(driver& drv, int depth) override;
+};
+
 /* STATEMENTS */
 
 

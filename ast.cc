@@ -47,6 +47,11 @@ IfExprAST::IfExprAST(
     then_expr(std::move(then_expr)),
     else_expr(std::move(else_expr)) {}
 
+CompositeExprAST::CompositeExprAST(
+    std::unique_ptr<ExprAST> current,
+    std::unique_ptr<ExprAST> next)
+  : current(std::move(current)),
+    next(std::move(next)) {}
 
 /* CODE GENERATION */
 
@@ -241,6 +246,21 @@ llvm::Value* IfExprAST::codegen(driver& drv, int depth) {
   PN->addIncoming(else_val, elseBB);
   return PN;
 }
+
+
+llvm::Value* CompositeExprAST::codegen(driver& drv, int depth) {
+  dbglog(drv, "Composite Expression", "", depth);
+
+  assert(this->current);
+  llvm::Value* cur_val = this->current->codegen(drv, depth + 1);
+
+  if (this->next) {
+    return this->next->codegen(drv, depth + 1);
+  } else {
+    return cur_val;
+  }
+}
+
 
 llvm::Function* FunctionPrototypeAST::codegen(driver& drv, int depth) {
   dbglog(drv, "Function prototype", this->getName(), depth);

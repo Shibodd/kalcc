@@ -44,6 +44,7 @@ id [a-zA-Z][a-zA-Z0-9]*
 "("        return yy::parser::make_LPAREN(loc);
 ")"        return yy::parser::make_RPAREN(loc);
 ";"        return yy::parser::make_SEMICOLON(loc);
+":"        return yy::parser::make_COLON(loc);
 ","        return yy::parser::make_COMMA(loc);
 ">="       return yy::parser::make_GTE(loc);
 ">"        return yy::parser::make_GT(loc);

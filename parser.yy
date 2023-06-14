@@ -27,6 +27,7 @@
 %token
  EOF  0  "end of file"
  SEMICOLON ";"
+ COLON ":"
  COMMA ","
  MINUS "-"
  PLUS "+"
@@ -60,7 +61,6 @@
 %nterm <std::unique_ptr<ExprAST>> identifier_expr
 %nterm <std::vector<std::unique_ptr<ExprAST>>> opt_expr_list
 %nterm <std::vector<std::unique_ptr<ExprAST>>> expr_list
-%nterm <std::unique_ptr<IfExprAST>> ifexpr
 
 %%
 
@@ -91,6 +91,7 @@ fun_proto_params:
 fun_ext:
   "extern" fun_proto { $$ = std::move($2); }
 
+%right ":";
 %nonassoc "<" "<=" ">" ">=" "==" "!=";
 %left "+" "-";
 %left "*" "/";
@@ -108,13 +109,11 @@ expr:
   | expr ">=" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Gte, std::move($1), std::move($3)); }
   | expr "==" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Eq, std::move($1), std::move($3)); }
   | expr "!=" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Neq, std::move($1), std::move($3)); }
+  | expr ":" expr { $$ = std::make_unique<CompositeExprAST>(std::move($1), std::move($3)); }
   | "-" expr %prec UMINUS { $$ = std::make_unique<UnaryExprAST>(UnaryOperator::NumericNeg, std::move($2)); }
   | identifier_expr { $$ = std::move($1); }
   | "(" expr ")" { $$ = std::move($2); }
-  | ifexpr { $$ = std::move($1); }
-
-ifexpr:
-  "if" expr "then" expr "else" expr "end" { $$ = std::make_unique<IfExprAST>(std::move($2), std::move($4), std::move($6)); }
+  | "if" expr "then" expr "else" expr "end" { $$ = std::make_unique<IfExprAST>(std::move($2), std::move($4), std::move($6)); }
 
 identifier_expr:
   "id" { $$ = std::make_unique<VariableExprAST>(std::move($1)); }
