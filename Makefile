@@ -10,7 +10,7 @@ CXXFLAGS = $(shell llvm-config-$(LLVM_VERSION) --cxxflags --system-libs) -g3 -Og
 LDFLAGS = $(shell llvm-config-$(LLVM_VERSION) --ldflags --libfiles --system-libs)
 
 parser.cc parser.hh: parser.yy
-	bison parser.yy -o parser.cc -Wcounterexamples
+	bison parser.yy -o parser.cc
 
 scanner.cc: scanner.ll
 	flex -o scanner.cc scanner.ll

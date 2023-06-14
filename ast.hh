@@ -61,9 +61,9 @@ class BinaryExprAST : public ExprAST {
 
 public:
   BinaryExprAST(
-      BinaryOperator op,
-      std::unique_ptr<ExprAST> lhs,
-      std::unique_ptr<ExprAST> rhs);
+    BinaryOperator op,
+    std::unique_ptr<ExprAST> lhs,
+    std::unique_ptr<ExprAST> rhs);
 
   llvm::Value* codegen(driver& drv, int depth) override;
 };
@@ -93,8 +93,8 @@ class CallExprAST : public ExprAST {
 
 public:
   CallExprAST(
-      const std::string &callee,
-      std::vector<std::unique_ptr<ExprAST>> args);
+    const std::string &callee,
+    std::vector<std::unique_ptr<ExprAST>> args);
     
   llvm::Value* codegen(driver& drv, int depth) override;
 };
@@ -105,9 +105,9 @@ class IfExprAST : public ExprAST {
 
 public:
   IfExprAST(
-      std::unique_ptr<ExprAST> cond_expr,
-      std::unique_ptr<ExprAST> then_expr,
-      std::unique_ptr<ExprAST> else_expr);
+    std::unique_ptr<ExprAST> cond_expr,
+    std::unique_ptr<ExprAST> then_expr,
+    std::unique_ptr<ExprAST> else_expr);
   
   llvm::Value* codegen(driver& drv, int depth) override;
 };
@@ -125,14 +125,45 @@ public:
   llvm::Value* codegen(driver& drv, int depth) override;
 };
 
+
+class ForExprAST : public ExprAST {
+  std::string id_name;
+  std::unique_ptr<ExprAST> init_expr, cond_expr, step_expr, body_expr;
+
+public:
+  ForExprAST(
+    std::string id_name,
+    std::unique_ptr<ExprAST> init_expr,
+    std::unique_ptr<ExprAST> cond_expr,
+    std::unique_ptr<ExprAST> step_expr,
+    std::unique_ptr<ExprAST> body_expr);
+
+  llvm::Value* codegen(driver& drv, int depth) override;
+};
+
+
+class WhileExprAST : public ExprAST {
+  std::unique_ptr<ExprAST> cond_expr, body_expr;
+
+public:
+  WhileExprAST(
+    std::unique_ptr<ExprAST> cond_expr,
+    std::unique_ptr<ExprAST> body_expr);
+
+  llvm::Value* codegen(driver& drv, int depth) override;
+};
+
 /* STATEMENTS */
 
 
 class SequenceAST : public RootAST {
   std::unique_ptr<RootAST> current;
   std::unique_ptr<SequenceAST> next;
+
 public:
-  SequenceAST(std::unique_ptr<RootAST> current, std::unique_ptr<SequenceAST> next);
+  SequenceAST(
+    std::unique_ptr<RootAST> current,
+    std::unique_ptr<SequenceAST> next);
   
   llvm::Value* codegen(driver& drv, int depth) override;
 };
@@ -143,7 +174,9 @@ class FunctionPrototypeAST : public RootAST {
   std::vector<std::string> argsNames;
 
 public:
-  FunctionPrototypeAST(const std::string &name, std::vector<std::string> argsNames);
+  FunctionPrototypeAST(
+    const std::string &name,
+    std::vector<std::string> argsNames);
 
   llvm::Function* codegen(driver& drv, int depth) override;
   const std::string &getName() const;
@@ -155,8 +188,9 @@ class FunctionAST : public RootAST {
   std::unique_ptr<ExprAST> body;
 
 public:
-  FunctionAST(std::unique_ptr<FunctionPrototypeAST> prototype,
-              std::unique_ptr<ExprAST> body);
+  FunctionAST(
+    std::unique_ptr<FunctionPrototypeAST> prototype,
+    std::unique_ptr<ExprAST> body);
 
   llvm::Value* codegen(driver& drv, int depth) override;
 };

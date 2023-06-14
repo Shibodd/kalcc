@@ -41,6 +41,10 @@
  GTE ">="
  EQ "=="
  NEQ "!="
+ ASSIGN "="
+ FOR "for"
+ WHILE "while"
+ IN "in"
  EXTERN "extern"
  DEF "def"
  IF "if"
@@ -51,14 +55,19 @@
 
 %token <std::string> IDENTIFIER "id"
 %token <double> NUMBER "number"
+
 %nterm <std::unique_ptr<SequenceAST>> program
 %nterm <std::unique_ptr<RootAST>> top
+
 %nterm <std::unique_ptr<FunctionAST>> fun_def
 %nterm <std::unique_ptr<FunctionPrototypeAST>> fun_proto
 %nterm <std::vector<std::string>> fun_proto_params
 %nterm <std::unique_ptr<FunctionPrototypeAST>> fun_ext
+
 %nterm <std::unique_ptr<ExprAST>> expr
 %nterm <std::unique_ptr<ExprAST>> identifier_expr
+%nterm <std::unique_ptr<ExprAST>> for_step;
+
 %nterm <std::vector<std::unique_ptr<ExprAST>>> opt_expr_list
 %nterm <std::vector<std::unique_ptr<ExprAST>>> expr_list
 
@@ -114,6 +123,12 @@ expr:
   | identifier_expr { $$ = std::move($1); }
   | "(" expr ")" { $$ = std::move($2); }
   | "if" expr "then" expr "else" expr "end" { $$ = std::make_unique<IfExprAST>(std::move($2), std::move($4), std::move($6)); }
+  | "for" "id" "=" expr "," expr for_step "in" expr "end" { $$ = std::make_unique<ForExprAST>($2, std::move($4), std::move($6), std::move($7), std::move($9)); }
+  | "while" expr "in" expr "end" { $$ = std::make_unique<WhileExprAST>(std::move($2), std::move($4)); }
+
+for_step:
+  %empty { $$ = std::make_unique<NumberExprAST>(1.0); }
+  | "," expr { $$ = std::move($2); }
 
 identifier_expr:
   "id" { $$ = std::make_unique<VariableExprAST>(std::move($1)); }

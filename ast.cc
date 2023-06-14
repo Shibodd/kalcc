@@ -53,6 +53,24 @@ CompositeExprAST::CompositeExprAST(
   : current(std::move(current)),
     next(std::move(next)) {}
 
+ForExprAST::ForExprAST(
+    std::string id_name,
+    std::unique_ptr<ExprAST> init_expr,
+    std::unique_ptr<ExprAST> cond_expr,
+    std::unique_ptr<ExprAST> step_expr,
+    std::unique_ptr<ExprAST> body_expr)
+  : id_name(id_name),
+    init_expr(std::move(init_expr)),
+    cond_expr(std::move(cond_expr)),
+    step_expr(std::move(step_expr)),
+    body_expr(std::move(body_expr)) {}
+
+WhileExprAST::WhileExprAST(
+    std::unique_ptr<ExprAST> cond_expr,
+    std::unique_ptr<ExprAST> body_expr)
+  : cond_expr(std::move(cond_expr)),
+    body_expr(std::move(body_expr)) {}
+
 /* CODE GENERATION */
 
 static inline void dbglog(const driver& drv, const std::string& construct, const std::string& str, int depth) {
@@ -259,6 +277,18 @@ llvm::Value* CompositeExprAST::codegen(driver& drv, int depth) {
   } else {
     return cur_val;
   }
+}
+
+llvm::Value* ForExprAST::codegen(driver& drv, int depth)  {
+  dbglog(drv, "For Expression", "", depth);
+
+  return nullptr;
+}
+
+llvm::Value* WhileExprAST::codegen(driver& drv, int depth)  {
+  dbglog(drv, "While Expression", "", depth);
+
+  return nullptr;
 }
 
 
