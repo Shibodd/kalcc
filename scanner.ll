@@ -45,6 +45,13 @@ id [a-zA-Z][a-zA-Z0-9]*
 ")"        return yy::parser::make_RPAREN(loc);
 ";"        return yy::parser::make_SEMICOLON(loc);
 ","        return yy::parser::make_COMMA(loc);
+">="       return yy::parser::make_GTE(loc);
+">"        return yy::parser::make_GT(loc);
+"<="       return yy::parser::make_LTE(loc);
+"<"        return yy::parser::make_LT(loc);
+"=="       return yy::parser::make_EQ(loc);
+"!="       return yy::parser::make_NEQ(loc);
+
 
 {num}      return parseNumber(yytext, loc);
 {id}       return parseKeyword(yytext, loc);

@@ -76,7 +76,13 @@ llvm::Value* BinaryExprAST::codegen(driver& drv, int depth) {
     { BinaryOperator::Add, "Add" },
     { BinaryOperator::Sub, "Sub" },
     { BinaryOperator::Mul, "Mul" },
-    { BinaryOperator::Div, "Div" }
+    { BinaryOperator::Div, "Div" },
+    { BinaryOperator::Gt, "Gt" },
+    { BinaryOperator::Gte, "Gte" },
+    { BinaryOperator::Lt, "Lt" },
+    { BinaryOperator::Lte, "Lte" },
+    { BinaryOperator::Eq, "Eq" },
+    { BinaryOperator::Neq, "Neq" },
   };
 
   dbglog(drv, "Binary expression", BINOP_NAMES.at(this->op), depth);
@@ -95,6 +101,42 @@ llvm::Value* BinaryExprAST::codegen(driver& drv, int depth) {
       return drv.llvmIRBuilder->CreateFMul(lhs, rhs, "multmp");
     case BinaryOperator::Div:
       return drv.llvmIRBuilder->CreateFDiv(lhs, rhs, "divtmp");
+
+    case BinaryOperator::Gt:
+      return drv.llvmIRBuilder->CreateUIToFP(
+        drv.llvmIRBuilder->CreateFCmpUGT(lhs, rhs, "booltmp"),
+        llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
+      );
+
+    case BinaryOperator::Lt:
+      return drv.llvmIRBuilder->CreateUIToFP(
+        drv.llvmIRBuilder->CreateFCmpULT(lhs, rhs, "booltmp"),
+        llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
+      );
+
+    case BinaryOperator::Gte:
+      return drv.llvmIRBuilder->CreateUIToFP(
+        drv.llvmIRBuilder->CreateFCmpUGE(lhs, rhs, "booltmp"),
+        llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
+      );
+
+    case BinaryOperator::Lte:
+      return drv.llvmIRBuilder->CreateUIToFP(
+        drv.llvmIRBuilder->CreateFCmpULE(lhs, rhs, "booltmp"),
+        llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
+      );
+    
+    case BinaryOperator::Eq:
+      return drv.llvmIRBuilder->CreateUIToFP(
+        drv.llvmIRBuilder->CreateFCmpUEQ(lhs, rhs, "booltmp"),
+        llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
+      );
+    
+    case BinaryOperator::Neq:
+      return drv.llvmIRBuilder->CreateUIToFP(
+        drv.llvmIRBuilder->CreateFCmpUNE(lhs, rhs, "booltmp"),
+        llvm::Type::getDoubleTy(*drv.llvmContext), "dbltmp"
+      );
   }
 
   assert(false);

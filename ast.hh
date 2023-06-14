@@ -46,7 +46,13 @@ enum class BinaryOperator {
   Add,
   Sub,
   Mul,
-  Div
+  Div,
+  Gt,
+  Gte,
+  Lt,
+  Lte,
+  Eq,
+  Neq
 };
 
 class BinaryExprAST : public ExprAST {

@@ -34,6 +34,12 @@
  SLASH "/"
  LPAREN "("
  RPAREN ")"
+ LT "<"
+ LTE "<="
+ GT ">"
+ GTE ">="
+ EQ "=="
+ NEQ "!="
  EXTERN "extern"
  DEF "def"
  IF "if"
@@ -85,6 +91,7 @@ fun_proto_params:
 fun_ext:
   "extern" fun_proto { $$ = std::move($2); }
 
+%nonassoc "<" "<=" ">" ">=" "==" "!=";
 %left "+" "-";
 %left "*" "/";
 
@@ -94,6 +101,12 @@ expr:
   | expr "-" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Sub, std::move($1), std::move($3)); }
   | expr "*" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Mul, std::move($1), std::move($3)); }
   | expr "/" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Div, std::move($1), std::move($3)); }
+  | expr "<" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Lt, std::move($1), std::move($3)); }
+  | expr "<=" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Lte, std::move($1), std::move($3)); }
+  | expr ">" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Gt, std::move($1), std::move($3)); }
+  | expr ">=" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Gte, std::move($1), std::move($3)); }
+  | expr "==" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Eq, std::move($1), std::move($3)); }
+  | expr "!=" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Neq, std::move($1), std::move($3)); }
   | identifier_expr { $$ = std::move($1); }
   | "(" expr ")" { $$ = std::move($2); }
   | ifexpr { $$ = std::move($1); }
