@@ -83,7 +83,7 @@ axiom:
 
 program:
   %empty { $$ = nullptr; }
-  | top ";" program { $$ = std::make_unique<SequenceAST>(std::move($1), std::move($3)); }
+  | top ";" program { $$ = std::make_unique<SequenceAST>(std::move($1), std::move($3), @$); }
 
 top:
   %empty { $$ = nullptr; }
@@ -92,10 +92,10 @@ top:
   | expr { $$ = std::move($1); }
 
 fun_def:
-  "def" fun_proto expr { $$ = std::make_unique<FunctionAST>(std::move($2), std::move($3)); }
+  "def" fun_proto expr { $$ = std::make_unique<FunctionAST>(std::move($2), std::move($3), @$); }
 
 fun_proto:
-  "id" "(" fun_proto_params ")" { $$ = std::make_unique<FunctionPrototypeAST>(std::move($1), std::move($3)); }
+  "id" "(" fun_proto_params ")" { $$ = std::make_unique<FunctionPrototypeAST>(std::move($1), std::move($3), @$); }
 
 fun_proto_params:
   %empty { $$ = std::vector<std::string>(); }
@@ -112,57 +112,60 @@ fun_ext:
 %left UMINUS;
 
 expr:
-  "number" { $$ = std::make_unique<NumberExprAST>($1); }
-  | expr "+" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Add, std::move($1), std::move($3)); }
-  | expr "-" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Sub, std::move($1), std::move($3)); }
-  | expr "*" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Mul, std::move($1), std::move($3)); }
-  | expr "/" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Div, std::move($1), std::move($3)); }
-  | expr "<" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Lt, std::move($1), std::move($3)); }
-  | expr "<=" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Lte, std::move($1), std::move($3)); }
-  | expr ">" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Gt, std::move($1), std::move($3)); }
-  | expr ">=" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Gte, std::move($1), std::move($3)); }
-  | expr "==" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Eq, std::move($1), std::move($3)); }
-  | expr "!=" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Neq, std::move($1), std::move($3)); }
-  | "id" "=" expr { $$ = std::make_unique<AssignmentExprAST>($1, std::move($3)); }
-  | expr ":" expr { $$ = std::make_unique<CompositeExprAST>(std::move($1), std::move($3)); }
-  | "-" expr %prec UMINUS { $$ = std::make_unique<UnaryExprAST>(UnaryOperator::NumericNeg, std::move($2)); }
+  "number" { $$ = std::make_unique<NumberExprAST>($1, @1); }
+  | expr "+" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Add, std::move($1), std::move($3), @$); }
+  | expr "-" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Sub, std::move($1), std::move($3), @$); }
+  | expr "*" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Mul, std::move($1), std::move($3), @$); }
+  | expr "/" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Div, std::move($1), std::move($3), @$); }
+  | expr "<" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Lt, std::move($1), std::move($3), @$); }
+  | expr "<=" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Lte, std::move($1), std::move($3), @$); }
+  | expr ">" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Gt, std::move($1), std::move($3), @$); }
+  | expr ">=" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Gte, std::move($1), std::move($3), @$); }
+  | expr "==" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Eq, std::move($1), std::move($3), @$); }
+  | expr "!=" expr { $$ = std::make_unique<BinaryExprAST>(BinaryOperator::Neq, std::move($1), std::move($3), @$); }
+  | "id" "=" expr { $$ = std::make_unique<AssignmentExprAST>($1, std::move($3), @$); }
+  | expr ":" expr { $$ = std::make_unique<CompositeExprAST>(std::move($1), std::move($3), @$); }
+  | "-" expr %prec UMINUS { $$ = std::make_unique<UnaryExprAST>(UnaryOperator::NumericNeg, std::move($2), @$); }
   | identifier_expr { $$ = std::move($1); }
   | "(" expr ")" { $$ = std::move($2); }
-  | "if" expr "then" expr "else" expr "end" { $$ = std::make_unique<IfExprAST>(std::move($2), std::move($4), std::move($6)); }
+  | "if" expr "then" expr "else" expr "end" { $$ = std::make_unique<IfExprAST>(std::move($2), std::move($4), std::move($6), @$); }
   | "for" "id" "=" expr "," expr for_step "in" expr "end"
       {
         $$ = std::make_unique<ForExprAST>(
-          std::make_unique<AssignmentExprAST>($2, std::move($4)),
+          std::make_unique<AssignmentExprAST>($2, std::move($4), @4),
           std::move($6), 
           std::make_unique<AssignmentExprAST>(
             $2,
             std::make_unique<BinaryExprAST>(
               BinaryOperator::Add,
-              std::make_unique<VariableExprAST>($2),
-              std::move($7)
-            )
+              std::make_unique<VariableExprAST>($2, @2),
+              std::move($7),
+              @7
+            ),
+            @7
           ),
-          std::move($9)
+          std::move($9),
+          @$
         );
       }
-  | "while" expr "in" expr "end" { $$ = std::make_unique<WhileExprAST>(std::move($2), std::move($4)); }
-  | "var" varlist "in" expr "end" { $$ = std::make_unique<VarExprAST>(std::move($2), std::move($4)); }
+  | "while" expr "in" expr "end" { $$ = std::make_unique<WhileExprAST>(std::move($2), std::move($4), @$); }
+  | "var" varlist "in" expr "end" { $$ = std::make_unique<VarExprAST>(std::move($2), std::move($4), @$); }
 
 varlist:
   varlist_var { std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> v; v.push_back(std::move($1)); $$ = std::move(v); }
   | varlist_var "," varlist { $3.insert($3.begin(), std::move($1)); $$ = std::move($3); }
 
 varlist_var:
-  "id" { $$ = std::make_pair($1, std::make_unique<NumberExprAST>(0)); }
+  "id" { $$ = std::make_pair($1, std::make_unique<NumberExprAST>(0, @$)); }
   | "id" "=" expr { $$ = std::make_pair($1, std::move($3)); }
 
 for_step:
-  %empty { $$ = std::make_unique<NumberExprAST>(1.0); }
+  %empty { $$ = std::make_unique<NumberExprAST>(1.0, @$); }
   | "," expr { $$ = std::move($2); }
 
 identifier_expr:
-  "id" { $$ = std::make_unique<VariableExprAST>(std::move($1)); }
-  | "id" "(" opt_expr_list ")" { $$ = std::make_unique<CallExprAST>(std::move($1), std::move($3)); }
+  "id" { $$ = std::make_unique<VariableExprAST>(std::move($1), @$); }
+  | "id" "(" opt_expr_list ")" { $$ = std::make_unique<CallExprAST>(std::move($1), std::move($3), @$); }
 
 opt_expr_list:
   %empty { $$ = std::vector<std::unique_ptr<ExprAST>>(); }

@@ -4,91 +4,149 @@
 
 /* CONSTRUCTORS IMPLEMENTATIONS */
 
-VariableExprAST::VariableExprAST(const std::string &name)
-  : name(name) {}
+VariableExprAST::VariableExprAST(
+      const std::string &name,
+      const location& loc)
+  : ExprAST(loc),
+    name(name) {}
 
-NumberExprAST::NumberExprAST(double value)
-  : value(value) {}
+NumberExprAST::NumberExprAST(
+      double value, 
+      const location& loc)
+  : ExprAST(loc),
+  value(value) {}
 
 BinaryExprAST::BinaryExprAST(
       BinaryOperator op,
       std::unique_ptr<ExprAST> lhs,
-      std::unique_ptr<ExprAST> rhs)
-  : op(op),
+      std::unique_ptr<ExprAST> rhs,
+      const location& loc)
+  : ExprAST(loc),
+    op(op),
     lhs(std::move(lhs)),
     rhs(std::move(rhs)) {}
 
-UnaryExprAST::UnaryExprAST(UnaryOperator op, std::unique_ptr<ExprAST> operand)
-  : op(op),
+UnaryExprAST::UnaryExprAST(
+      UnaryOperator op,
+      std::unique_ptr<ExprAST> operand,
+      const location& loc)
+  : ExprAST(loc),
+    op(op),
     operand(std::move(operand)) {}
 
-CallExprAST::CallExprAST(const std::string &callee, std::vector<std::unique_ptr<ExprAST>> args)
-  : callee(callee),
+CallExprAST::CallExprAST(
+      const std::string &callee,
+      std::vector<std::unique_ptr<ExprAST>> args,
+      const location& loc)
+  : ExprAST(loc),
+    callee(callee),
     args(std::move(args)) {}
 
-SequenceAST::SequenceAST(std::unique_ptr<RootAST> current, std::unique_ptr<SequenceAST> next)
-  : current(std::move(current)),
+SequenceAST::SequenceAST(
+      std::unique_ptr<RootAST> current,
+      std::unique_ptr<SequenceAST> next,
+      const location& loc)
+  : RootAST(loc),
+    current(std::move(current)),
     next(std::move(next)) {}
 
-FunctionPrototypeAST::FunctionPrototypeAST(const std::string &name, std::vector<std::string> argsNames)
-  : name(name),
+FunctionPrototypeAST::FunctionPrototypeAST(
+      const std::string &name,
+      std::vector<std::string> argsNames,
+      const location& loc)
+  : RootAST(loc),
+    name(name),
     argsNames(argsNames) {}
+
 const std::string& FunctionPrototypeAST::getName() const { return name; }
 
-FunctionAST::FunctionAST(std::unique_ptr<FunctionPrototypeAST> prototype, std::unique_ptr<ExprAST> body)
-  : prototype(std::move(prototype)),
+FunctionAST::FunctionAST(
+      std::unique_ptr<FunctionPrototypeAST> prototype,
+      std::unique_ptr<ExprAST> body,
+      const location& loc)
+  : RootAST(loc),
+    prototype(std::move(prototype)),
     body(std::move(body)) {}
 
 IfExprAST::IfExprAST(
       std::unique_ptr<ExprAST> cond_expr,
       std::unique_ptr<ExprAST> then_expr,
-      std::unique_ptr<ExprAST> else_expr)
-  : cond_expr(std::move(cond_expr)),
+      std::unique_ptr<ExprAST> else_expr,
+      const location& loc)
+  : ExprAST(loc),
+    cond_expr(std::move(cond_expr)),
     then_expr(std::move(then_expr)),
     else_expr(std::move(else_expr)) {}
 
 CompositeExprAST::CompositeExprAST(
-    std::unique_ptr<ExprAST> current,
-    std::unique_ptr<ExprAST> next)
-  : current(std::move(current)),
+      std::unique_ptr<ExprAST> current,
+      std::unique_ptr<ExprAST> next,
+      const location& loc)
+  : ExprAST(loc),
+    current(std::move(current)),
     next(std::move(next)) {}
 
 ForExprAST::ForExprAST(
-    std::unique_ptr<AssignmentExprAST> init_expr,
-    std::unique_ptr<ExprAST> cond_expr,
-    std::unique_ptr<AssignmentExprAST>  step_expr,
-    std::unique_ptr<ExprAST> body_expr)
-  : init_expr(std::move(init_expr)),
+      std::unique_ptr<AssignmentExprAST> init_expr,
+      std::unique_ptr<ExprAST> cond_expr,
+      std::unique_ptr<AssignmentExprAST>  step_expr,
+      std::unique_ptr<ExprAST> body_expr,
+      const location& loc)
+  : ExprAST(loc),
+    init_expr(std::move(init_expr)),
     cond_expr(std::move(cond_expr)),
     step_expr(std::move(step_expr)),
     body_expr(std::move(body_expr)) {}
 
 WhileExprAST::WhileExprAST(
-    std::unique_ptr<ExprAST> cond_expr,
-    std::unique_ptr<ExprAST> body_expr)
-  : cond_expr(std::move(cond_expr)),
+      std::unique_ptr<ExprAST> cond_expr,
+      std::unique_ptr<ExprAST> body_expr,
+      const location& loc)
+  : ExprAST(loc),
+    cond_expr(std::move(cond_expr)),
     body_expr(std::move(body_expr)) {}
 
 AssignmentExprAST::AssignmentExprAST(
-    std::string id_name,
-    std::unique_ptr<ExprAST> value_expr)
-  : id_name(id_name),
+      std::string id_name,
+      std::unique_ptr<ExprAST> value_expr,
+      const location& loc)
+  : ExprAST(loc),
+    id_name(id_name),
     value_expr(std::move(value_expr)) {}
 const std::string& AssignmentExprAST::getDestinationName() const { return id_name; }
 
-
 VarExprAST::VarExprAST(
-    std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> declarations,
-    std::unique_ptr<ExprAST> body)
-  : declarations(std::move(declarations)),
+      std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> declarations,
+      std::unique_ptr<ExprAST> body,
+      const location& loc)
+  : ExprAST(loc),
+    declarations(std::move(declarations)),
     body(std::move(body)) {}
 
 
 /* CODE GENERATION */
+typedef yy::position position;
+static inline std::string posToStrVerbose(const position& pos) {
+  return "Ln " + std::to_string(pos.line) + " Col " + std::to_string(pos.column);
+}
 
-static inline void dbglog(const driver& drv, const std::string& construct, const std::string& str, int depth) {
-  if (drv.trace_codegen)
-    llvm::errs() << std::string(depth, '\'') << "[" << construct << "] " << str << "\n";
+static inline std::string posToStrCompact(const position& pos) {
+  return "{" + std::to_string(pos.line) + ", " + std::to_string(pos.column) + "}";
+}
+
+static inline void error(const location& loc, const std::string& message) {
+  throw "Error at " + posToStrVerbose(loc.begin) + ": " + message;
+}
+
+static inline void dbglog(const driver& drv, const std::string& construct, const std::string& str, int depth, const location& loc) {
+  if (drv.trace_codegen) {
+    llvm::errs() << std::string(depth, '\'') << "[" << construct;
+    if (!str.empty())
+      llvm::errs() << " \"" << str << "\"";
+    llvm::errs() << "]  ";
+
+    llvm::errs() << "From " << posToStrCompact(loc.begin) << " to " << posToStrCompact(loc.end) << "\n";
+  }
 }
 
 static llvm::AllocaInst* createAllocaInEntryBlock(const driver& drv, llvm::Function *F, const std::string &varName) {
@@ -97,9 +155,9 @@ static llvm::AllocaInst* createAllocaInEntryBlock(const driver& drv, llvm::Funct
   return builder.CreateAlloca(llvm::Type::getDoubleTy(*drv.llvmContext), nullptr, varName);
 }
 
-static llvm::AllocaInst* createVar(driver& drv, llvm::Function* F, const std::string& name, llvm::Value* initValue = nullptr) {
+static llvm::AllocaInst* createVar(driver& drv, llvm::Function* F, const std::string& name, const location& loc, llvm::Value* initValue = nullptr) {
   if (drv.namedPointers[name])
-    throw "Redefinition of variable " + name;
+    error(loc, "Redefinition of variable " + name);
 
   llvm::AllocaInst* ptr = createAllocaInEntryBlock(drv, F, name);
 
@@ -111,10 +169,10 @@ static llvm::AllocaInst* createVar(driver& drv, llvm::Function* F, const std::st
   return ptr;
 }
 
-static llvm::AllocaInst* getVar(driver& drv, const std::string& name) {
+static llvm::AllocaInst* getVar(driver& drv, const location& loc, const std::string& name) {
   llvm::AllocaInst* ptr = drv.namedPointers[name];
   if (!ptr)
-    throw "Unknown variable name: " + name;
+    error(loc, "Unknown variable name: " + name);
   return ptr;
 }
 
@@ -137,14 +195,14 @@ static llvm::Value* booleanToDouble(const driver& drv, llvm::Value* cond_val) {
 #include <llvm/IR/Verifier.h>
 
 llvm::Value* VariableExprAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "Variable", this->name, depth);
+  dbglog(drv, "Variable", this->name, depth, this->getLocation());
 
-  llvm::AllocaInst* ptr = getVar(drv, this->name);
+  llvm::AllocaInst* ptr = getVar(drv, this->getLocation(), this->name);
   return drv.llvmIRBuilder->CreateLoad(ptr->getAllocatedType(), ptr, this->name);
 }
 
 llvm::Value* NumberExprAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "Number", std::to_string(this->value), depth);
+  dbglog(drv, "Number", std::to_string(this->value), depth, this->getLocation());
 
   return llvm::ConstantFP::get(*drv.llvmContext, llvm::APFloat(this->value));
 }
@@ -163,7 +221,7 @@ llvm::Value* BinaryExprAST::codegen(driver& drv, int depth) {
     { BinaryOperator::Neq, "Neq" },
   };
 
-  dbglog(drv, "Binary expression", BINOP_NAMES.at(this->op), depth);
+  dbglog(drv, "Binary expression", BINOP_NAMES.at(this->op), depth, this->getLocation());
 
   llvm::Value* lhs = this->lhs->codegen(drv, depth + 1);
   llvm::Value* rhs = this->rhs->codegen(drv, depth + 1);
@@ -201,7 +259,7 @@ llvm::Value* UnaryExprAST::codegen(driver& drv, int depth) {
     { UnaryOperator::NumericNeg, "NumericNeg" }
   };
 
-  dbglog(drv, "Unary expression", UNOP_NAMES.at(this->op), depth);
+  dbglog(drv, "Unary expression", UNOP_NAMES.at(this->op), depth, this->getLocation());
 
   llvm::Value* op_value = this->operand->codegen(drv, depth + 1);
 
@@ -216,14 +274,14 @@ llvm::Value* UnaryExprAST::codegen(driver& drv, int depth) {
 }
 
 llvm::Value* CallExprAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "Function call", this->callee, depth);
+  dbglog(drv, "Function call", this->callee, depth, this->getLocation());
 
   llvm::Function* fun = drv.llvmModule->getFunction(this->callee);
   if (!fun)
-    throw "Called unknown function " + this->callee;
+    error(this->getLocation(), "Called unknown function " + this->callee);
   
   if (fun->arg_size() != this->args.size())
-    throw "Function call argument count mismatch: expecting " + std::to_string(fun->arg_size()) + ", got " + std::to_string(this->args.size());
+    error(this->getLocation(), "Function call argument count mismatch: expecting " + std::to_string(fun->arg_size()) + ", got " + std::to_string(this->args.size()));
   
   std::vector<llvm::Value *> args;
   for (unsigned i = 0, e = this->args.size(); i != e; ++i) {
@@ -236,7 +294,7 @@ llvm::Value* CallExprAST::codegen(driver& drv, int depth) {
 }
 
 llvm::Value* IfExprAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "If expression", "", depth);
+  dbglog(drv, "If expression", "", depth, this->getLocation());
 
   // Condition
   llvm::Value* cond_val = this->cond_expr->codegen(drv, depth + 1);
@@ -287,7 +345,7 @@ llvm::Value* IfExprAST::codegen(driver& drv, int depth) {
 
 
 llvm::Value* CompositeExprAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "Composite Expression", "", depth);
+  dbglog(drv, "Composite Expression", "", depth, this->getLocation());
 
   assert(this->current);
   llvm::Value* cur_val = this->current->codegen(drv, depth + 1);
@@ -300,7 +358,7 @@ llvm::Value* CompositeExprAST::codegen(driver& drv, int depth) {
 }
 
 llvm::Value* ForExprAST::codegen(driver& drv, int depth)  {
-  dbglog(drv, "For Expression", "", depth);
+  dbglog(drv, "For Expression", "", depth, this->getLocation());
 
   // CFG
   llvm::Function* F = drv.llvmIRBuilder->GetInsertBlock()->getParent();
@@ -310,7 +368,7 @@ llvm::Value* ForExprAST::codegen(driver& drv, int depth)  {
 
   llvm::AllocaInst* exitValuePtr = createAllocaInEntryBlock(drv,  F, "exitValuePtr");
 
-  createVar(drv, F, this->init_expr->getDestinationName());
+  createVar(drv, F, this->init_expr->getDestinationName(), this->getLocation());
 
   /* PREHEADER */
 
@@ -361,7 +419,7 @@ llvm::Value* ForExprAST::codegen(driver& drv, int depth)  {
 }
 
 llvm::Value* WhileExprAST::codegen(driver& drv, int depth)  {
-  dbglog(drv, "While Expression", "", depth);
+  dbglog(drv, "While Expression", "", depth, this->getLocation());
 
 
   // CFG
@@ -409,13 +467,13 @@ llvm::Value* WhileExprAST::codegen(driver& drv, int depth)  {
 }
 
 llvm::Value* AssignmentExprAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "Assignment", this->id_name, depth);
+  dbglog(drv, "Assignment", this->id_name, depth, this->getLocation());
   assert(this->value_expr);
 
   llvm::Value* value = this->value_expr->codegen(drv, depth);
   assert(value);
 
-  drv.llvmIRBuilder->CreateStore(value, getVar(drv, this->id_name));
+  drv.llvmIRBuilder->CreateStore(value, getVar(drv, this->getLocation(), this->id_name));
   return value;
 }
 
@@ -425,7 +483,7 @@ llvm::Value* VarExprAST::codegen(driver& drv, int depth) {
     std::string varnames = this->declarations[0].first;
     for (auto &decl : this->declarations)
       varnames.append(", " + decl.first);
-    dbglog(drv, "VarExpr", varnames, depth);
+    dbglog(drv, "VarExpr", varnames, depth, this->getLocation());
 
     llvm::Function* F = drv.llvmIRBuilder->GetInsertBlock()->getParent();
 
@@ -433,10 +491,10 @@ llvm::Value* VarExprAST::codegen(driver& drv, int depth) {
       llvm::Value* initValue = decl.second->codegen(drv, depth + 1);
       assert(initValue);
 
-      createVar(drv, F, decl.first, initValue);
+      createVar(drv, F, decl.first, this->getLocation(), initValue);
     }
   } else {
-    dbglog(drv, "VarExpr", "", depth);
+    dbglog(drv, "VarExpr", "", depth, this->getLocation());
   }
 
   return this->body->codegen(drv, depth + 1);
@@ -445,7 +503,7 @@ llvm::Value* VarExprAST::codegen(driver& drv, int depth) {
 
 
 llvm::Function* FunctionPrototypeAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "Function prototype", this->getName(), depth);
+  dbglog(drv, "Function prototype", this->getName(), depth, this->getLocation());
 
   std::vector<llvm::Type *> types(this->argsNames.size(), llvm::Type::getDoubleTy(*drv.llvmContext));
 
@@ -461,7 +519,7 @@ llvm::Function* FunctionPrototypeAST::codegen(driver& drv, int depth) {
 }
   
 llvm::Value* FunctionAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "Function", this->prototype->getName(), depth);
+  dbglog(drv, "Function", this->prototype->getName(), depth, this->getLocation());
 
   llvm::Function* F = drv.llvmModule->getFunction(this->prototype->getName());
   if (!F)
@@ -470,14 +528,14 @@ llvm::Value* FunctionAST::codegen(driver& drv, int depth) {
   assert(F);
 
   if (!F->empty())
-    throw "Redefinition of function " + F->getName();
+    error(this->getLocation(), "Redefinition of function " + std::string(F->getName()));
 
   llvm::BasicBlock* entryBB = llvm::BasicBlock::Create(*drv.llvmContext, "entry", F);
   drv.llvmIRBuilder->SetInsertPoint(entryBB);
 
   drv.namedPointers.clear();
   for (auto &arg : F->args())
-    createVar(drv, F, std::string(arg.getName()), &arg);
+    createVar(drv, F, std::string(arg.getName()), this->getLocation(), &arg);
 
   llvm::Value *returnValue = this->body->codegen(drv, depth + 1);
   assert(returnValue);
@@ -489,7 +547,7 @@ llvm::Value* FunctionAST::codegen(driver& drv, int depth) {
 }
 
 llvm::Value* SequenceAST::codegen(driver& drv, int depth) {
-  dbglog(drv, "Sequence", "", depth);
+  dbglog(drv, "Sequence", "", depth, this->getLocation());
 
   if (this->current) {
     if (ExprAST* expr = dynamic_cast<ExprAST*>(this->current.get())) {
@@ -501,8 +559,8 @@ llvm::Value* SequenceAST::codegen(driver& drv, int depth) {
       
       // Create the anon function and replace the current node with it
       const std::string anon_fun_name = "__anon_expr" + std::to_string(drv.get_unique_id());
-      auto anon_fun_proto = std::make_unique<FunctionPrototypeAST>(anon_fun_name, std::vector<std::string>());
-      this->current = std::make_unique<FunctionAST>(std::move(anon_fun_proto), std::move(expr_ptr));
+      auto anon_fun_proto = std::make_unique<FunctionPrototypeAST>(anon_fun_name, std::vector<std::string>(), expr_ptr->getLocation());
+      this->current = std::make_unique<FunctionAST>(std::move(anon_fun_proto), std::move(expr_ptr), expr_ptr->getLocation());
     }
 
     this->current->codegen(drv, depth + 1);
